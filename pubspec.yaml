@@ -1,0 +1,33 @@
+name: uploud_nilai_lpns
+description: "A new Flutter project."
+
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.1
+
+dependencies:
+  cupertino_icons: ^1.0.8
+  dropdown_button2: ^2.3.9
+  flutter:
+    sdk: flutter
+  flutter_launcher_icons: ^0.14.4
+  get: ^4.7.3
+  google_fonts: ^6.3.2
+  supabase_flutter: ^2.10.3
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+flutter_icons: # 👈 tambahkan di paling bawah
+  android: true
+  ios: true
+  image_path: "assets/icon/app_icon.png"
+  adaptive_icon_background: "#ffffff"
+  adaptive_icon_foreground: "assets/icon/app_icon.png"
