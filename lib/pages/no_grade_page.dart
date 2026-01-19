@@ -20,9 +20,6 @@ class _NoGradePageState extends State<NoGradePage> {
   final selectedSubjectId = ''.obs;
   final isLoading = false.obs;
 
-  final FocusNode classFocus = FocusNode();
-  final FocusNode subjectFocus = FocusNode();
-
   @override
   void initState() {
     super.initState();
@@ -30,77 +27,70 @@ class _NoGradePageState extends State<NoGradePage> {
     fetchSubjects();
   }
 
-  // Ambil daftar kelas
+  // ───────── DATA ─────────
+
   Future<void> fetchClasses() async {
     try {
-      final response = await SupabaseService.client.from('classes').select();
-      classes.assignAll(List<Map<String, dynamic>>.from(response));
-    } catch (e) {
-      _glassError("Gagal memuat kelas");
+      final res = await SupabaseService.client.from('classes').select();
+      classes.assignAll(List<Map<String, dynamic>>.from(res));
+    } catch (_) {
+      _glass("Gagal memuat kelas", Colors.redAccent);
     }
   }
 
-  // Ambil daftar mata pelajaran
   Future<void> fetchSubjects() async {
     try {
-      final response = await SupabaseService.client.from('subjects').select();
-      subjects.assignAll(List<Map<String, dynamic>>.from(response));
-    } catch (e) {
-      _glassError("Gagal memuat pelajaran");
+      final res = await SupabaseService.client.from('subjects').select();
+      subjects.assignAll(List<Map<String, dynamic>>.from(res));
+    } catch (_) {
+      _glass("Gagal memuat pelajaran", Colors.redAccent);
     }
   }
 
-  // Ambil nama mata pelajaran dari ID
   String _getSubjectNameById(String id) {
     try {
-      final m = subjects.firstWhere((s) => s['id'].toString() == id);
-      return m['name'] ?? '-';
+      return subjects.firstWhere((s) => s['id'].toString() == id)['name'];
     } catch (_) {
       return '-';
     }
   }
 
-  // Ambil siswa yang belum punya nilai
   Future<void> fetchStudentsWithoutGrades() async {
     if (selectedClassId.value.isEmpty || selectedSubjectId.value.isEmpty) {
-      _glassWarning("Pilih kelas dan pelajaran");
+      _glass("Pilih kelas dan pelajaran", Colors.amberAccent);
       return;
     }
 
     isLoading.value = true;
     try {
-      final gradeIdsResponse = await SupabaseService.client
+      final gradeIdsRes = await SupabaseService.client
           .from('grades_kuartal')
           .select('student_id')
           .eq('subject_id', int.parse(selectedSubjectId.value));
 
-      final gradeIds = (gradeIdsResponse as List)
+      final gradeIds = (gradeIdsRes as List)
           .map((e) => e['student_id'])
-          .where((id) => id != null)
+          .where((e) => e != null)
           .toList();
 
-      final result = await SupabaseService.client
+      final res = await SupabaseService.client
           .from('students_kuartal')
           .select('id, name, class_id, classes(name)')
           .eq('class_id', int.parse(selectedClassId.value))
           .not('id', 'in', gradeIds.isEmpty ? [0] : gradeIds)
-          .order('name', ascending: true);
+          .order('name');
 
-      students.assignAll(List<Map<String, dynamic>>.from(result));
-    } catch (e) {
-      _glassError("Gagal mengambil data");
+      students.assignAll(List<Map<String, dynamic>>.from(res));
+    } catch (_) {
+      _glass("Gagal mengambil data", Colors.redAccent);
     } finally {
       isLoading.value = false;
     }
   }
 
-  // ─────────────────── NOTIFIKASI iPHONE GLASS ───────────────────
+  // ───────── GLASS SNACKBAR ─────────
 
-  void _glassSuccess(String msg) => _glass(msg, Colors.greenAccent);
-  void _glassError(String msg) => _glass(msg, Colors.redAccent);
-  void _glassWarning(String msg) => _glass(msg, Colors.amberAccent);
-
-  void _glass(String message, Color color) {
+  void _glass(String msg, Color color) {
     Get.rawSnackbar(
       messageText: ClipRRect(
         borderRadius: BorderRadius.circular(18),
@@ -109,7 +99,7 @@ class _NoGradePageState extends State<NoGradePage> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.2),
+              color: color.withOpacity(0.22),
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
                 color: Colors.white.withOpacity(0.4),
@@ -117,7 +107,7 @@ class _NoGradePageState extends State<NoGradePage> {
               ),
             ),
             child: Text(
-              message,
+              msg,
               style: GoogleFonts.poppins(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
@@ -129,18 +119,11 @@ class _NoGradePageState extends State<NoGradePage> {
       ),
       backgroundColor: Colors.transparent,
       snackPosition: SnackPosition.TOP,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      borderRadius: 20,
       duration: const Duration(milliseconds: 850),
-      animationDuration: const Duration(milliseconds: 420),
-      forwardAnimationCurve: Curves.easeOutExpo,
-      reverseAnimationCurve: Curves.easeIn,
-      overlayBlur: 3,
-      overlayColor: Colors.black.withOpacity(0.1),
     );
   }
 
-  // ─────────────────── UI iPHONE ───────────────────
+  // ───────── UI ─────────
 
   @override
   Widget build(BuildContext context) {
@@ -153,8 +136,8 @@ class _NoGradePageState extends State<NoGradePage> {
         title: Text(
           "Murid Tanpa Nilai",
           style: GoogleFonts.poppins(
-            color: Colors.black87,
             fontWeight: FontWeight.w600,
+            color: Colors.black87,
           ),
         ),
         foregroundColor: Colors.black87,
@@ -163,37 +146,17 @@ class _NoGradePageState extends State<NoGradePage> {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _sectionCard([
                 _label("Kelas"),
-                Obx(
-                  () => _iosDropdown(
-                    items: classes,
-                    selected: selectedClassId.value,
-                    onChanged: (v) => selectedClassId.value = v ?? '',
-                  ),
-                ),
+                Obx(() => _iosDropdown(classes, selectedClassId)),
               ]),
-
               _sectionCard([
                 _label("Mata Pelajaran"),
-                Obx(
-                  () => _iosDropdown(
-                    items: subjects,
-                    selected: selectedSubjectId.value,
-                    onChanged: (v) => selectedSubjectId.value = v ?? '',
-                  ),
-                ),
+                Obx(() => _iosDropdown(subjects, selectedSubjectId)),
               ]),
-
               const SizedBox(height: 10),
-
-              _iosButton(
-                label: "Cari Siswa",
-                onTap: fetchStudentsWithoutGrades,
-              ),
-
+              _iosButton("Cari Siswa", fetchStudentsWithoutGrades),
               const SizedBox(height: 12),
 
               Expanded(
@@ -209,7 +172,7 @@ class _NoGradePageState extends State<NoGradePage> {
                   if (students.isEmpty) {
                     return Center(
                       child: Text(
-                        "Harap melihat semua nilai \n admin tidak akan mengecek lagi nilai yang kosong, murni mengambil nilai yang di sudah uploud oleh para tim",
+                        "Tidak ada siswa tanpa nilai",
                         textAlign: TextAlign.center,
                         style: GoogleFonts.poppins(
                           color: Colors.black45,
@@ -221,30 +184,63 @@ class _NoGradePageState extends State<NoGradePage> {
 
                   return ListView.builder(
                     itemCount: students.length,
-                    itemBuilder: (context, index) {
-                      final s = students[index];
+                    itemBuilder: (_, i) {
+                      final s = students[i];
                       return _sectionCard([
-                        Text(
-                          s['name'],
-                          style: GoogleFonts.poppins(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          "Kelas: ${s['classes']?['name']}",
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            color: Colors.black54,
-                          ),
-                        ),
-                        Text(
-                          "Mata Pelajaran: ${_getSubjectNameById(selectedSubjectId.value)}",
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            color: Colors.black54,
-                          ),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    s['name'],
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    "Kelas: ${s['classes']?['name']}",
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      color: Colors.black54,
+                                    ),
+                                  ),
+                                  Text(
+                                    "Pelajaran: ${_getSubjectNameById(selectedSubjectId.value)}",
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      color: Colors.black54,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // 🆔 ID SUPABASE (KANAN, MINIMAL)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.blueAccent.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                "ID ${s['id']}",
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.blueAccent,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ]);
                     },
@@ -258,7 +254,7 @@ class _NoGradePageState extends State<NoGradePage> {
     );
   }
 
-  // ─────────────────── WIDGET HELPER iPHONE ───────────────────
+  // ───────── WIDGET iOS ─────────
 
   Widget _sectionCard(List<Widget> children) {
     return Container(
@@ -297,48 +293,43 @@ class _NoGradePageState extends State<NoGradePage> {
     );
   }
 
-  Widget _iosDropdown({
-    required List items,
-    required String selected,
-    required Function(String?) onChanged,
-  }) {
+  Widget _iosDropdown(List items, RxString selected) {
     return DropdownButtonFormField<String>(
-      value: selected.isEmpty ? null : selected,
-      dropdownColor: Colors.white,
+      value: selected.value.isEmpty ? null : selected.value,
       decoration: InputDecoration(
         filled: true,
         fillColor: const Color(0xFFF2F2F7),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide.none,
         ),
       ),
       items: items
           .map(
-            (item) => DropdownMenuItem(
-              value: item['id'].toString(),
+            (e) => DropdownMenuItem(
+              value: e['id'].toString(),
               child: Text(
-                item['name'],
+                e['name'],
                 style: const TextStyle(color: Colors.black87),
               ),
             ),
           )
           .toList(),
-      onChanged: onChanged,
+      onChanged: (v) => selected.value = v ?? '',
     );
   }
 
-  Widget _iosButton({required String label, required VoidCallback onTap}) {
+  Widget _iosButton(String label, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 48,
+        height: 50,
         decoration: BoxDecoration(
           color: Colors.blueAccent,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.blueAccent.withOpacity(0.4),
+              color: Colors.blueAccent.withOpacity(0.35),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
