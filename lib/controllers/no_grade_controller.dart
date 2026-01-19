@@ -22,7 +22,7 @@ class NoGradeController extends GetxController {
       // 🔹 Ambil siswa dari kelas yang BELUM ada di daftar studentIdsWithGrades
       final query = SupabaseService.client
           .from('students')
-          .select('id, name')
+          .select('id, name') 
           .eq('class_id', classId);
 
       if (studentIdsWithGrades.isNotEmpty) {

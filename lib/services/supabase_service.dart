@@ -11,6 +11,7 @@ class SupabaseService {
     );
   }
 
+
   /// Supabase client yang bisa dipakai di mana saja
   static SupabaseClient get client => Supabase.instance.client;
 }
